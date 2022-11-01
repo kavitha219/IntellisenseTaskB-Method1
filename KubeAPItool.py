@@ -1,26 +1,22 @@
-from kubernetes import client, config ,watch
-# To Load the cluster config, by default it will load ~/.kube/config
-# For a task it is ok to load default config, but in live environemnts we should provide associated configs.
+"""
+The following Code is to get the deployment name, Image name and Deployment updated time for all deployments in any Kubernetes cluster. 
+This code will give you all the deployments that been created under any namespace. 
+We just have to update the namespace details and that will fetch the data in tabular format.
+"""
+from kubernetes import client, config
+from prettytable import PrettyTable
 config.load_kube_config()
-
-v1 = client.CoreV1Api()
 apis_api = client.AppsV1Api()
-
-imagetest=client.V1ContainerImage()
-print("Listing Deployments with their names")
-print("Name of Deployment\t\t\tImages of Each deployment\t\tTimeStamp")
-ret = v1.list_pod_for_all_namespaces(watch=False)
-
-#print(ret)
-for i in ret.items:
-    print("%s\t\t\t\t%s\t\t\t\t%s" % (i.metadata.name,i.metadata.namespace,i.metadata.creation_timestamp ))
-
-print("*******************************************************")
-
-print("Listing Deployments with default Namespace")
-print("Name of Deployment\t\t\tNamespace- Default\tTimeStamp")
-rete = v1.list_namespaced_pod(namespace="default", watch=False)
-
-
-for i in rete.items:
-    print("%s\t%s\t\t\t%s" % (i.metadata.name,i.metadata.namespace,i.metadata.creation_timestamp ))
+resp = apis_api.list_namespaced_deployment('sock-shop')
+deps = resp.items
+dep_name = [deployment.metadata.name for deployment in deps]
+image_name = [deployment.spec.template.spec.containers[0].image for deployment in deps]
+deployment_time = [deployment.status.conditions[0].last_update_time for deployment in deps]
+#print(dep_name)
+#print(image_name)
+#print(deployment_time)
+#print(list(zip(dep_name,image_name,deployment_time)))
+t = PrettyTable(['Deployment_Name','Image','Deployment_updated_Time'])
+for i in range(len(deps)):
+    t.add_row(list(zip(dep_name,image_name,deployment_time))[i])
+print(t)
